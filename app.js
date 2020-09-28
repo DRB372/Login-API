@@ -7,7 +7,7 @@ var logger = require("morgan");
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 const sequelize = require("./util/database");
-const indexModel = require("./models/index");
+const indexModel = require("./models/user");
 var app = express();
 
 // view engine setup
@@ -38,12 +38,18 @@ app.use(function (err, req, res, next) {
   res.status(err.status || 500);
   res.render("error");
 });
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST,PUT, PATCH, DELETE");
+  res.setHeader("Access-Control-Allow-Headers",'Content-Type,Authorization');
+  next();
+});
 //  sequelize.sync({force :true}).then(result=>{
 
-sequelize
-  .sync()
-  .then((result) => {
-    app.listen(3000);
+sequelize.sync().then((result) => {
+  
+    app.listen(3001);
   })
   .catch((err) => {
     console.log(err);

@@ -1,17 +1,16 @@
 var express = require("express");
 var router = express.Router();
-const { body } = require("express-validator");
-const indexController = require("../controllers/index");
+const { body, header } = require("express-validator");
+const loginController = require("../controllers/API/login");
 /* GET home page. */
 router.get("/", function (req, res, next) {
   res.render("index", { title: "Express" });
 });
 
-router.get("/posts", indexController.getPosts);
+router.get("/API/users", loginController.getUsers);
 
-// POST /index/post
 router.post(
-  "/post",
+  "/API/user/new",
   [
     body("name")
       .trim()
@@ -25,19 +24,24 @@ router.post(
       .isEmpty()
       .escape()
       .withMessage("Date of Birth is required"),
-    body("password")
-      .trim()
-      .isLength({ min: 6 })
-      .escape()
-      .withMessage("Minimum length is 6 digits"),
+    
   ],
-  indexController.createPost
+  loginController.createUser
 );
 
-router.get("/post/:postId", indexController.getPost);
+router.post(
+  "/API/login",
+  [
+    body("email").trim().isEmail().escape().withMessage("Email must be valid"),
+    
+  ],
+  loginController.login
+);
+
+router.get("/API/user/:userId", loginController.getUser);
 
 router.put(
-  "/post/:postId",
+  "/API/user/:userId",
   [
     body("name")
       .trim()
@@ -51,13 +55,9 @@ router.put(
       .isEmpty()
       .escape()
       .withMessage("Date of Birth is required"),
-    body("password")
-      .trim()
-      .isLength({ min: 6 })
-      .escape()
-      .withMessage("Minimum length is 6 digits"),
+  
   ],
-  indexController.updatePost
+  loginController.updateUser
 );
-router.delete("/post/:postId", indexController.deletePost);
+router.delete("/API/user/:userId", loginController.deleteUser);
 module.exports = router;
