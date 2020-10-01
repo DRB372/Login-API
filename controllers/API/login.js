@@ -1,7 +1,13 @@
 const { validationResult } = require("express-validator");
-
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 const User = require("../../models/user");
+const ResetPasword = require("../../models/resetPassword");
 const bcrypt = require("bcrypt");
+const Sequelize = require("sequelize");
+const Op = Sequelize.Op;
+const hbs = require("nodemailer-express-handlebars");
+const log = console.log;
 exports.getUsers = (req, res, next) => {
   User.findAll()
     .then((users) => {
@@ -38,20 +44,28 @@ exports.createUser = async (req, res, next) => {
     dob: dob,
     password: hash,
   });
-  user
-    .save()
-    .then((result) => {
-      res.status(201).json({
-        message: "User created successfully!",
-        user: result,
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
+  const emailCheck = await User.findAll({ where: { email: email } });
+  console.log(emailCheck.length);
+  if (emailCheck.length === 1) {
+    return res.status(200).json({
+      message: "User Already Exists!",
     });
+  } else {
+    user
+      .save()
+      .then((result) => {
+        res.status(201).json({
+          message: "User created successfully!",
+          user: result,
+        });
+      })
+      .catch((err) => {
+        if (!err.statusCode) {
+          err.statusCode = 500;
+        }
+        next(err);
+      });
+  }
 };
 exports.login = async (req, res, next) => {
   const errors = validationResult(req);
@@ -64,21 +78,31 @@ exports.login = async (req, res, next) => {
   }
   const email = req.body.email;
   const password = req.body.password;
-  User.findAll({ where: { email: email } })
-    .then((user) => {
-      bcrypt.compare(password, user[0].password).then(function(result) {
-        res.status(200).json({
-          message: "Login successfully!",
-          user: result,
-        });
+
+  const emailCheck = await User.findAll({ where: { email: email } });
+  console.log(emailCheck.length);
+  if (emailCheck.length === 0) {
+    return res.status(200).json({
+      message: "User Doesn't Exists!",
     });
+  } else {
+  const comparepassword= await bcrypt.compare(password, emailCheck[0].password);
+     console.log(comparepassword);
+        if(comparepassword ){
+          res.status(200).json({
+            message: "Login successfully!",
+          
+          });
+        }else{
+          res.status(200).json({
+            message: "Invalid Email or Password",
+           
+          });
+        }
      
-    }).catch(err=>{
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    })
+    
+  
+  }
 };
 
 exports.getUser = (req, res, next) => {
@@ -164,4 +188,157 @@ exports.deleteUser = (req, res, next) => {
       }
       next(err);
     });
+};
+exports.resetLink = async (req, res, next) => {
+  const email = req.body.email;
+
+  const emailCheck = await User.findAll({ where: { email: email } });
+  console.log(emailCheck.length);
+  if (emailCheck.length === 0) {
+    return res.status(200).json({
+      message: "User Doesn't Exists!",
+    });
+  } else if (emailCheck.length === 1) {
+    await ResetPasword.update(
+      {
+        used: 1,
+      },
+      {
+        where: {
+          email: req.body.email,
+        },
+      }
+    );
+
+    var token = crypto.randomBytes(64).toString("base64");
+    var expireDate = new Date();
+    expireDate.setDate(expireDate.getDate() + 1 / 24);
+    const resetPassword = new ResetPasword({
+      email: email,
+      expiration: expireDate,
+      token: token,
+      used: 0,
+    });
+    await resetPassword.save();
+
+    let transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "intern2@shayansolutions.com",
+        pass: "j=T3hm5a",
+      },
+    });
+    const handlebarOptions = {
+      viewEngine: {
+        extName: ".ejs",
+        partialsDir: "some/path",
+        layoutsDir: "./views/",
+        defaultLayout: "template.ejs",
+      },
+      viewPath: "./views/",
+      extName: ".ejs",
+    };
+
+    transporter.use("compile", hbs(handlebarOptions));
+
+    let mailOptions = {
+      from: "intern2@shayansolutions.com",
+      to: emailCheck[0].email,
+      subject: "Reset Email",
+      template: "template",
+      context: {
+        link:
+          "http://localhost:3000/API/user/resetPassword?token=" +
+          encodeURIComponent(token) +
+          "&email=" +
+          req.body.email,
+        name: emailCheck[0].name,
+        email: emailCheck[0].email,
+      },
+    };
+    transporter.sendMail(mailOptions, (err, res, data) => {
+      if (err) {
+        return log(err);
+      } else {
+        return log("Email sent!!!");
+      }
+    });
+    return res.status(200).json({
+      message: "Email Sent Successfully",
+    });
+  }
+};
+
+exports.resetPassword = async (req, res, next) => {
+  await ResetPasword.destroy({
+    where: {
+      expiration: { [Op.lt]: Sequelize.fn("CURDATE") },
+    },
+  });
+  var record = await ResetPasword.findOne({
+    where: {
+      email: req.query.email,
+      expiration: { [Op.gt]: Sequelize.fn("CURDATE") },
+      token: req.query.token,
+      used: 0,
+    },
+  });
+  if (record) {
+   return res.json({
+    status: "success",
+
+      message: "Token Found.",
+      showForm: true,
+      record: record,
+    });
+   
+  } else {
+    return res.json({
+      status: "error",
+      message: "Token not found. Please try the reset password process again.",
+      showForm: false,
+
+    });
+  }
+};
+exports.newPassword = async (req, res, next) => {
+  console.log(req.body);
+  var record = await ResetPasword.findOne({
+    where: {
+      email: req.body.email,
+      expiration: { [Op.gt]: Sequelize.fn("CURDATE") },
+      token: req.body.token,
+      used: 0,
+    },
+  });
+  console.log(record);
+  if (record == null) {
+    return res.json({
+      status: "error",
+      message: "Token not found. Please try the reset password process again.",
+    });
+  }
+   await ResetPasword.update(
+    {
+      used: 1,
+    },
+    {
+      where: {
+        email: req.body.email,
+      },
+    }
+  );
+  const password = req.body.password;
+  const hash = await bcrypt.hash(password, 10);
+  await User.update(
+    {
+      password: hash,
+    },
+    {
+      where: {
+        email: req.body.email,
+      },
+    }
+  )
+  return res.json({status: 'ok', message: 'Password reset. Please login with your new password.'});
 };

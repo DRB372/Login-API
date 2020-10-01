@@ -7,7 +7,9 @@ var logger = require("morgan");
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 const sequelize = require("./util/database");
-const indexModel = require("./models/user");
+const userModel = require("./models/user");
+const resetPasswordModel = require("./models/resetPassword");
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 var app = express();
 
 // view engine setup

@@ -2,30 +2,31 @@ const Sequelize = require("sequelize");
 
 const sequelize = require("../util/database");
 
-const User = sequelize.define("Users", {
+const ResetPassword = sequelize.define("resetPassword", {
   id: {
     type: Sequelize.INTEGER,
     autoIncrement: true,
     allowNull: false,
     primaryKey: true,
   },
-  name: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
+ 
   email: {
     type: Sequelize.STRING,
     allowNull: false,
   },
-  dob: {
-    type: Sequelize.DATEONLY,
-    allowNull: false,
-  },
-  password: {
+  token: {
     type: Sequelize.STRING,
-    allowNull: false,
+    allowNull: true,
   },
- 
+  expiration: {
+    type: Sequelize.DATE,
+    allowNull: true,
+  },
+  used: {
+    type: Sequelize.BOOLEAN,
+    allowNull: true,
+    defaultValue: true,
+  },
 });
 
-module.exports = User;
+module.exports = ResetPassword;

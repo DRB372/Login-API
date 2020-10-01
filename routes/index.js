@@ -24,21 +24,17 @@ router.post(
       .isEmpty()
       .escape()
       .withMessage("Date of Birth is required"),
-    
   ],
   loginController.createUser
 );
 
 router.post(
   "/API/login",
-  [
-    body("email").trim().isEmail().escape().withMessage("Email must be valid"),
-    
-  ],
+  [body("email").trim().isEmail().escape().withMessage("Email must be valid")],
   loginController.login
 );
 
-router.get("/API/user/:userId", loginController.getUser);
+router.get("/API/users/:userId", loginController.getUser);
 
 router.put(
   "/API/user/:userId",
@@ -49,15 +45,20 @@ router.put(
       .escape()
       .withMessage("Username is required"),
     body("email").trim().isEmail().escape().withMessage("Email must be valid"),
-    body("dob")
-      .trim()
-      .not()
-      .isEmpty()
-      .escape()
-      .withMessage("Date of Birth is required"),
-  
+    body("dob").trim().not().isEmpty().escape().withMessage("DOB is required"),
   ],
   loginController.updateUser
 );
-router.delete("/API/user/:userId", loginController.deleteUser);
+router.delete("/API/users/:userId", loginController.deleteUser);
+
+router.post(
+  "/API/user/resetLink",
+  [body("email").trim().isEmail().escape().withMessage("Email must be valid")],
+  loginController.resetLink
+);
+
+router.get("/API/user/resetPassword", loginController.resetPassword);
+
+router.post("/API/user/newPassword", loginController.newPassword);
+
 module.exports = router;
