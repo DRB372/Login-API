@@ -3,6 +3,7 @@ var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
+require('dotenv').config()
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
@@ -48,7 +49,7 @@ app.use((req, res, next) => {
   next();
 });
 //  sequelize.sync({force :true}).then(result=>{
-
+  // sequelize.sync({ alter: true }).then (result)=>{
 sequelize.sync().then((result) => {
   
     app.listen(3001);

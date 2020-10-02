@@ -2,7 +2,7 @@ var express = require("express");
 var router = express.Router();
 const { body, header } = require("express-validator");
 const loginController = require("../controllers/API/login");
-/* GET home page. */
+const checkAuth= require("../middleware/checkAuth")
 router.get("/", function (req, res, next) {
   res.render("index", { title: "Express" });
 });
@@ -10,7 +10,7 @@ router.get("/", function (req, res, next) {
 router.get("/API/users", loginController.getUsers);
 
 router.post(
-  "/API/user/new",
+  "/API/user/new",checkAuth,
   [
     body("name")
       .trim()

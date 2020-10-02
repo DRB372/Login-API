@@ -5,9 +5,11 @@ const User = require("../../models/user");
 const ResetPasword = require("../../models/resetPassword");
 const bcrypt = require("bcrypt");
 const Sequelize = require("sequelize");
+const jwt = require("jsonwebtoken");
 const Op = Sequelize.Op;
 const hbs = require("nodemailer-express-handlebars");
 const log = console.log;
+
 exports.getUsers = (req, res, next) => {
   User.findAll()
     .then((users) => {
@@ -86,22 +88,26 @@ exports.login = async (req, res, next) => {
       message: "User Doesn't Exists!",
     });
   } else {
-  const comparepassword= await bcrypt.compare(password, emailCheck[0].password);
-     console.log(comparepassword);
-        if(comparepassword ){
-          res.status(200).json({
-            message: "Login successfully!",
-          
-          });
-        }else{
-          res.status(200).json({
-            message: "Invalid Email or Password",
-           
-          });
-        }
-     
-    
-  
+    const comparepassword = await bcrypt.compare(
+      password,
+      emailCheck[0].password
+    );
+    if (comparepassword) {
+     const token= jwt.sign(
+        { email: emailCheck[0].email, userId: emailCheck[0].id },
+        process.env.JWT_KEY,{
+      expiresIn:"1h"
+        },
+      );
+      return res.status(200).json({
+        message: "Login successfully!",
+        token:token
+      });
+    } else {
+      res.status(200).json({
+        message: "Invalid Email or Password",
+      });
+    }
   }
 };
 
@@ -284,20 +290,18 @@ exports.resetPassword = async (req, res, next) => {
     },
   });
   if (record) {
-   return res.json({
-    status: "success",
+    return res.json({
+      status: "success",
 
       message: "Token Found.",
       showForm: true,
       record: record,
     });
-   
   } else {
     return res.json({
       status: "error",
       message: "Token not found. Please try the reset password process again.",
       showForm: false,
-
     });
   }
 };
@@ -318,7 +322,7 @@ exports.newPassword = async (req, res, next) => {
       message: "Token not found. Please try the reset password process again.",
     });
   }
-   await ResetPasword.update(
+  await ResetPasword.update(
     {
       used: 1,
     },
@@ -339,6 +343,9 @@ exports.newPassword = async (req, res, next) => {
         email: req.body.email,
       },
     }
-  )
-  return res.json({status: 'ok', message: 'Password reset. Please login with your new password.'});
+  );
+  return res.json({
+    status: "ok",
+    message: "Password reset. Please login with your new password.",
+  });
 };
