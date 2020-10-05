@@ -217,14 +217,16 @@ exports.resetLink = async (req, res, next) => {
     );
 
     var token = crypto.randomBytes(64).toString("base64");
-    var expireDate = new Date();
-    expireDate.setDate(expireDate.getDate() + 1 / 24);
+     var expireDate = new Date();
+            expireDate.setHours( expireDate.getHours() + 1 );
     const resetPassword = new ResetPasword({
       email: email,
       expiration: expireDate,
       token: token,
       used: 0,
     });
+    console.log(resetPassword);
+
     await resetPassword.save();
 
     let transporter = nodemailer.createTransport({

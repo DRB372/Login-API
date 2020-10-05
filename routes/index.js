@@ -10,7 +10,7 @@ router.get("/", function (req, res, next) {
 router.get("/API/users", loginController.getUsers);
 
 router.post(
-  "/API/user/new",checkAuth,
+  "/API/user/new",
   [
     body("name")
       .trim()
